@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head data-keep>
+<meta data-keep charset="utf-8">
+<meta data-keep name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta data-keep name="apple-mobile-web-app-capable" content="yes">
+<meta data-keep name="apple-mobile-web-app-title" content="Cosy Corner">
+<meta data-keep name="theme-color" content="#FFE9EE">
+<link data-keep rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧸</text></svg>">
+<title data-keep>Cosy Corner 🧸</title>
+<link data-keep rel="preconnect" href="https://fonts.googleapis.com">
+<link data-keep rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link data-keep href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style data-keep>
+:root{
+  --bg:#FFE9EE; --paper:#FFF7F8; --ink:#4A1D3A; --soft:#8A5A77;
+  --cherry:#D6334F; --cherry-ink:#fff; --butter:#FFD86B; --mint:#C4EBD9;
+  --line:#F3C4D0; --tile:#FFFFFF; --shadow:0 3px 0 #EDB3C2;
+  --wa:#1FA855;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#2A1424; --paper:#361B2F; --ink:#FFE3EC; --soft:#D6A9C2;
+    --cherry:#FF6B85; --cherry-ink:#2A1424; --butter:#F2C451; --mint:#2F5446;
+    --line:#5A2E4C; --tile:#40213A; --shadow:0 3px 0 #1C0C18; --wa:#3CCB74;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#2A1424; --paper:#361B2F; --ink:#FFE3EC; --soft:#D6A9C2;
+  --cherry:#FF6B85; --cherry-ink:#2A1424; --butter:#F2C451; --mint:#2F5446;
+  --line:#5A2E4C; --tile:#40213A; --shadow:0 3px 0 #1C0C18; --wa:#3CCB74;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Fredoka", ui-rounded, "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size:17px; line-height:1.45;
+  background-image:radial-gradient(var(--line) 1.2px, transparent 1.3px);
+  background-size:22px 22px;
+}
+.wrap{max-width:520px; margin:0 auto; padding:18px 16px 60px}
+button,input,textarea{font:inherit; color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--cherry); outline-offset:2px; border-radius:12px}
+
+/* header */
+header{display:flex; align-items:center; gap:12px; margin:6px 2px 18px}
+.bear{font-size:40px; line-height:1; transform:rotate(-8deg)}
+header h1{margin:0; font-size:26px; font-weight:700; line-height:1.1}
+header p{margin:2px 0 0; color:var(--soft); font-size:15px}
+.gear{margin-left:auto; border:0; background:var(--paper); width:44px; height:44px; border-radius:50%; font-size:20px; box-shadow:var(--shadow)}
+
+/* tabs */
+.tabs{display:grid; grid-template-columns:1fr 1fr; background:var(--paper); border-radius:999px; padding:5px; box-shadow:var(--shadow); margin-bottom:20px}
+.tabs button{border:0; background:transparent; padding:11px 8px; border-radius:999px; font-weight:600; font-size:16px; color:var(--soft)}
+.tabs button[aria-selected="true"]{background:var(--cherry); color:var(--cherry-ink)}
+
+h2{font-size:19px; margin:22px 4px 10px; font-weight:600}
+.hint{color:var(--soft); font-size:15px; margin:-6px 4px 12px}
+
+/* mood chips */
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chip{border:2px solid var(--line); background:var(--paper); padding:7px 13px; border-radius:999px; font-size:15px}
+.chip[aria-pressed="true"]{background:var(--butter); border-color:var(--butter); color:#4A1D3A; font-weight:600}
+
+/* menu grid */
+.grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+.tile{position:relative; border:2px solid transparent; background:var(--tile); border-radius:20px; padding:14px 6px 11px; text-align:center; box-shadow:var(--shadow); transition:transform .12s}
+.tile .e{display:block; font-size:32px; line-height:1.1}
+.tile .l{display:block; font-size:14px; margin-top:6px; line-height:1.2}
+.tile[aria-pressed="true"]{border-color:var(--cherry); transform:translateY(-2px)}
+.tile[aria-pressed="true"]::after{content:"♥"; position:absolute; top:5px; right:9px; color:var(--cherry); font-size:15px}
+.tile .x{position:absolute; top:-7px; right:-7px; width:26px; height:26px; border-radius:50%; border:0; background:var(--cherry); color:var(--cherry-ink); font-size:14px; line-height:26px; padding:0}
+.tile.add{border:2px dashed var(--line); box-shadow:none; background:transparent; color:var(--soft)}
+.linkbtn{border:0; background:none; color:var(--cherry); font-weight:600; padding:4px; font-size:15px; text-decoration:underline; text-underline-offset:3px}
+.row{display:flex; align-items:center; justify-content:space-between; gap:8px}
+
+textarea,input[type=text],input[type=url],input[type=tel]{
+  width:100%; border:2px solid var(--line); background:var(--paper); border-radius:16px; padding:11px 14px; font-size:16px;
+}
+textarea{min-height:70px; resize:vertical}
+input::placeholder,textarea::placeholder{color:var(--soft); opacity:.8}
+
+/* the ticket */
+.ticket{
+  margin:22px auto 0; background:#FFFDF6; color:#3B1830; max-width:360px; padding:22px 22px 26px; position:relative;
+  box-shadow:0 10px 24px rgba(74,29,58,.14); transform:rotate(-1.2deg);
+  --zz:linear-gradient(135deg,#FFFDF6 6px,transparent 0) 0 0/12px 12px repeat-x, linear-gradient(225deg,#FFFDF6 6px,transparent 0) 0 0/12px 12px repeat-x;
+}
+.ticket::before,.ticket::after{content:""; position:absolute; left:0; right:0; height:12px;
+  background:linear-gradient(45deg,transparent 6px,#FFFDF6 0) 0 0/12px 12px repeat-x, linear-gradient(-45deg,transparent 6px,#FFFDF6 0) 0 0/12px 12px repeat-x}
+.ticket::before{top:-11px; transform:scaleY(-1)}
+.ticket::after{bottom:-11px}
+.ticket .t-head{text-align:center; border-bottom:2px dashed #E8C6D2; padding-bottom:10px; margin-bottom:12px}
+.ticket .t-head b{display:block; font-size:20px}
+.ticket .t-head span{font-size:13px; color:#8A5A77}
+.ticket ul{list-style:none; margin:0; padding:0}
+.ticket li{display:flex; gap:10px; padding:3px 0; font-size:16px}
+.ticket li .dots{flex:1; border-bottom:2px dotted #E8C6D2; margin-bottom:6px}
+.ticket .note{font-family:"Caveat", "Segoe Print", cursive; font-size:24px; line-height:1.15; color:#C0284A; margin-top:12px}
+.ticket .empty{text-align:center; color:#8A5A77; font-size:15px; padding:8px 0}
+.ticket .mood{font-size:14px; color:#8A5A77; margin-top:10px}
+
+.send{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:26px}
+.btn{border:0; border-radius:18px; padding:14px 12px; font-weight:600; font-size:16px; box-shadow:var(--shadow)}
+.btn.main{background:var(--cherry); color:var(--cherry-ink)}
+.btn.wa{background:var(--wa); color:#fff}
+.btn.soft{background:var(--paper); color:var(--ink)}
+.btn.wide{grid-column:1/-1}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+
+/* wishlist */
+.addcard{background:var(--paper); border-radius:22px; padding:14px; box-shadow:var(--shadow); display:grid; gap:10px}
+.hearts{display:flex; align-items:center; gap:4px}
+.hearts button{border:0; background:none; font-size:24px; padding:2px 3px; line-height:1; filter:grayscale(1); opacity:.4}
+.hearts button.on{filter:none; opacity:1}
+.hearts small{color:var(--soft); margin-left:6px; font-size:14px}
+.wish{list-style:none; padding:0; margin:0; display:grid; gap:10px}
+.wish li{background:var(--tile); border-radius:20px; padding:13px 14px; box-shadow:var(--shadow); display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center}
+.wish .h{font-size:14px; letter-spacing:1px; white-space:nowrap}
+.wish .name{font-weight:500; overflow-wrap:anywhere}
+.wish .name a{color:var(--cherry); font-size:14px; font-weight:600; margin-left:4px}
+.wish li.got{opacity:.55}
+.wish li.got .name{text-decoration:line-through}
+.wish .acts{display:flex; gap:4px}
+.wish .acts button{border:0; background:var(--paper); width:36px; height:36px; border-radius:50%; font-size:16px}
+.emptybox{text-align:center; padding:26px 16px; color:var(--soft); border:2px dashed var(--line); border-radius:22px}
+.emptybox .big{font-size:40px; display:block}
+
+/* setup + sheet */
+.setup{background:var(--butter); color:#4A1D3A; border-radius:22px; padding:16px; margin-bottom:18px; display:grid; gap:10px}
+.setup b{font-size:17px}
+.setup input{background:#FFF9E6; border-color:#F0C24A; color:#4A1D3A}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+dialog{border:0; border-radius:26px; padding:20px; background:var(--paper); color:var(--ink); width:min(440px,92vw); box-shadow:0 20px 50px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(74,29,58,.35)}
+dialog h3{margin:0 0 12px; font-size:20px}
+dialog label{display:block; font-size:14px; color:var(--soft); margin:12px 0 5px}
+dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
+.emojirow{display:grid; grid-template-columns:70px 1fr; gap:10px}
+.emojirow input:first-child{text-align:center; font-size:22px; padding:8px}
+
+.readonly{background:var(--mint); border-radius:16px; padding:10px 14px; font-size:15px; margin-bottom:16px}
+.toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,20px); opacity:0; background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:999px; font-size:15px; transition:.25s; pointer-events:none; z-index:10; max-width:90vw; text-align:center}
+.toast.show{opacity:1; transform:translate(-50%,0)}
+[hidden]{display:none !important}
+@media (max-width:360px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body data-keep>
+<div class="wrap" id="app" data-keep></div>
+<div class="toast" id="toast" role="status" aria-live="polite" data-keep></div>
+
+<script id="state" type="application/json" data-keep>{"v":1,"her":"","him":"","menu":[{"id":"m1","e":"🍫","l":"Chocolate"},{"id":"m2","e":"🍦","l":"Ice cream"},{"id":"m3","e":"🥔","l":"Crisps"},{"id":"m4","e":"🍕","l":"Takeaway"},{"id":"m5","e":"☕","l":"Cup of tea"},{"id":"m6","e":"🔥","l":"Hot water bottle"},{"id":"m7","e":"💊","l":"Painkillers"},{"id":"m8","e":"🌸","l":"Pads / tampons"},{"id":"m9","e":"🤗","l":"Cuddles"},{"id":"m10","e":"🎬","l":"Film night"},{"id":"m11","e":"💆‍♀️","l":"Back rub"},{"id":"m12","e":"💐","l":"Flowers"}],"wish":[]}</script>
+
+<script data-keep>
+(function(){
+  // --- template capture (only our own elements, never shell-injected ones) ---
+  const clone = document.documentElement.cloneNode(true);
+  clone.removeAttribute("data-theme");
+  clone.querySelectorAll("head > *:not([data-keep]), body > *:not([data-keep])").forEach(n => n.remove());
+  clone.querySelector("#app").innerHTML = "";
+  const TEMPLATE = "<!DOCTYPE html>\n" + clone.outerHTML;
+
+  const MOODS = ["😣 Crampy","😴 Tired","🥺 Weepy","😤 Hangry","🫠 Meh","🥰 Just need you"];
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const uid = () => Math.random().toString(36).slice(2,9);
+  const ls = {
+    get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+    set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  };
+  const ss = {
+    get(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } },
+    set(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} },
+    del(k){ try{ sessionStorage.removeItem(k); }catch(e){} }
+  };
+
+  let S = JSON.parse(document.getElementById("state").textContent);
+  let ui = { tab:"comfort", basket:[], moods:[], note:"", editMenu:false, newHearts:2 };
+  try{ const saved = JSON.parse(ss.get("cosy-ui")||"null"); if(saved) ui = Object.assign(ui, saved); ss.del("cosy-ui"); }catch(e){}
+  let phone = ls.get("cosy-phone") || "";
+
+  let art = null, readOnly = false, artResolved = false, pubTimer = null;
+
+  function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),2200); }
+
+  // --- persistence ---
+  function commit(){
+    render();
+    if(readOnly) return;
+    clearTimeout(pubTimer);
+    pubTimer = setTimeout(save, 1100);
+  }
+  function save(){
+    if(!artResolved){ pubTimer = setTimeout(save, 600); return; }
+    if(!art){ ls.set("cosy-state", JSON.stringify(S)); return; }
+    const json = JSON.stringify(S).replace(/</g,"\\u003c");
+    const html = TEMPLATE.replace(/(<script id="state" type="application\/json"[^>]*>)[\s\S]*?(<\/script>)/, (m,a,b) => a + json + b);
+    ss.set("cosy-ui", JSON.stringify({tab:ui.tab, basket:ui.basket, moods:ui.moods, note:ui.note, editMenu:ui.editMenu}));
+    art.publish(html).then(()=>{ ss.del("cosy-ui"); }).catch(err=>{
+      const c = err && err.code;
+      if(c==="conflict") return;
+      if(["not_writer","not_granted","not_declared","consent_required","capability_disabled","capability_removed"].includes(c)){
+        ss.del("cosy-ui"); readOnly = true; render(); toast("This is a view-only copy 💕");
+      } else if(c==="rate_limited"){ pubTimer = setTimeout(save, 4000); }
+      else { ss.del("cosy-ui"); toast("Couldn't save that change. Try again in a moment."); }
+    });
+  }
+
+  // --- messages ---
+  const herName = () => S.her.trim() || "me";
+  const himName = () => S.him.trim() || "love";
+  function orderText(){
+    const items = S.menu.filter(m => ui.basket.includes(m.id));
+    let t = `🧸 Comfort order for ${himName()} 🧸\nFrom: ${herName()} (on my period 🌸)\n\n`;
+    t += items.map(m => `${m.e} ${m.l}`).join("\n");
+    if(ui.moods.length) t += `\n\nFeeling: ${ui.moods.join(", ")}`;
+    if(ui.note.trim()) t += `\n\n✏️ ${ui.note.trim()}`;
+    t += `\n\nThank you, you're the best ❤️`;
+    return t;
+  }
+  function wishText(){
+    const list = S.wish.filter(w=>!w.got).sort((a,b)=>b.h-a.h);
+    let t = `🎀 ${herName()}'s wishlist 🎀\n(for birthdays, surprises & "just because")\n\n`;
+    t += list.map(w => `${"💗".repeat(w.h)} ${w.name}${w.link ? "\n   " + w.link : ""}`).join("\n");
+    return t;
+  }
+  function openUrl(url){
+    const w = window.open(url, "_blank", "noopener");
+    if(!w) location.href = url;
+  }
+  const digits = () => phone.replace(/[^\d+]/g,"").replace(/^\+/,"");
+  function sendWA(text){ openUrl(`https://wa.me/${digits()}?text=${encodeURIComponent(text)}`); }
+  function sendSMS(text){ openUrl(`sms:${phone.replace(/[^\d+]/g,"")}${/iPhone|iPad/.test(navigator.userAgent)?"&":"?"}body=${encodeURIComponent(text)}`); }
+  async function copyOrShare(text){
+    if(navigator.share){ try{ await navigator.share({text}); return; }catch(e){ if(e && e.name==="AbortError") return; } }
+    try{ await navigator.clipboard.writeText(text); toast("Copied! Paste it to him 💌"); return; }catch(e){}
+    const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("Copied! Paste it to him 💌"); }catch(e){ toast("Couldn't copy on this device"); }
+    ta.remove();
+  }
+
+  // --- render ---
+  function render(){
+    const app = $("#app");
+    const needsSetup = !S.her.trim() && !readOnly;
+    const title = S.her.trim() && S.him.trim() ? `${esc(S.her)} & ${esc(S.him)}` : "Cosy Corner";
+    let h = `
+      <header>
+        <span class="bear" aria-hidden="true">🧸</span>
+        <div><h1>${title}</h1><p>snacks, cuddles & wishes</p></div>
+        ${readOnly?"":`<button class="gear" id="openSettings" aria-label="Settings">⚙️</button>`}
+      </header>`;
+    if(readOnly) h += `<div class="readonly">You're viewing ${esc(herName())}'s list. Only ${esc(herName())} can change it 💕</div>`;
+    if(needsSetup) h += `
+      <div class="setup">
+        <b>First, who are you two? 💞</b>
+        <div class="two">
+          <input type="text" id="setHer" placeholder="Your name" maxlength="24" aria-label="Your name">
+          <input type="text" id="setHim" placeholder="His name" maxlength="24" aria-label="His name">
+        </div>
+        <button class="btn main" id="saveNames">Save names</button>
+      </div>`;
+    h += `
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="comfort" aria-selected="${ui.tab==="comfort"}">🧸 Comfort orders</button>
+        <button role="tab" data-tab="wish" aria-selected="${ui.tab==="wish"}">🎀 Wishlist</button>
+      </div>`;
+    h += ui.tab==="comfort" ? comfortView() : wishView();
+    app.innerHTML = h;
+  }
+
+  function comfortView(){
+    if(readOnly){
+      return `<h2>${esc(herName())}'s comfort menu</h2><p class="hint">Her go-to rescue kit, for when she needs it.</p>
+        <div class="grid">${S.menu.map(m=>`<div class="tile"><span class="e">${esc(m.e)}</span><span class="l">${esc(m.l)}</span></div>`).join("")}</div>`;
+    }
+    const items = S.menu.filter(m => ui.basket.includes(m.id));
+    let h = `
+      <h2>How are you feeling?</h2>
+      <div class="chips">${MOODS.map(m=>`<button class="chip" data-mood="${esc(m)}" aria-pressed="${ui.moods.includes(m)}">${esc(m)}</button>`).join("")}</div>
+      <div class="row"><h2>What would help?</h2><button class="linkbtn" id="toggleEdit">${ui.editMenu?"Done":"Edit menu"}</button></div>
+      <div class="grid">
+        ${S.menu.map(m=>`<button class="tile" data-item="${m.id}" aria-pressed="${ui.basket.includes(m.id)}">
+            <span class="e">${esc(m.e)}</span><span class="l">${esc(m.l)}</span>
+            ${ui.editMenu?`<span class="x" role="button" aria-label="Remove ${esc(m.l)}" data-del="${m.id}">✕</span>`:""}
+          </button>`).join("")}
+        <button class="tile add" id="addItem"><span class="e">＋</span><span class="l">Add your own</span></button>
+      </div>
+      <h2>Any details?</h2>
+      <textarea id="note" maxlength="200" placeholder="e.g. the Galaxy one, not Dairy Milk 🙏">${esc(ui.note)}</textarea>
+      <div class="ticket" aria-label="Order preview">
+        <div class="t-head"><b>Comfort order</b><span>for ${esc(himName())} · from ${esc(herName())}</span></div>
+        ${items.length ? `<ul>${items.map(m=>`<li><span>${esc(m.e)}</span><span>${esc(m.l)}</span><span class="dots"></span><span>♥</span></li>`).join("")}</ul>`
+                       : `<div class="empty">Tap what you'd like above ♡</div>`}
+        ${ui.moods.length?`<div class="mood">Feeling: ${esc(ui.moods.join(", "))}</div>`:""}
+        ${ui.note.trim()?`<div class="note">${esc(ui.note)}</div>`:""}
+      </div>
+      <div class="send">
+        <button class="btn wa" data-send="wa" ${items.length?"":"disabled"}>Send on WhatsApp</button>
+        <button class="btn main" data-send="sms" ${items.length?"":"disabled"}>Send as text</button>
+        <button class="btn soft wide" data-send="copy" ${items.length?"":"disabled"}>Share or copy</button>
+      </div>
+      ${items.length?`<p class="hint" style="text-align:center;margin-top:12px"><button class="linkbtn" id="clearOrder">Clear order</button></p>`:""}`;
+    return h;
+  }
+
+  function wishView(){
+    const list = [...S.wish].sort((a,b)=> (a.got-b.got) || (b.h-a.h));
+    let h = "";
+    if(!readOnly) h += `
+      <div class="addcard">
+        <input type="text" id="wName" maxlength="80" placeholder="Something you'd love…" aria-label="Wish">
+        <input type="url" id="wLink" placeholder="Link (optional)" aria-label="Link">
+        <div class="row">
+          <div class="hearts" role="group" aria-label="How much do you want it?">
+            ${[1,2,3].map(n=>`<button data-heart="${n}" class="${n<=ui.newHearts?"on":""}" aria-label="${n} heart${n>1?"s":""}">💗</button>`).join("")}
+            <small>${["","would be nice","really want","dream gift"][ui.newHearts]}</small>
+          </div>
+          <button class="btn main" id="addWish">Add</button>
+        </div>
+      </div>`;
+    h += `<h2>${readOnly?`${esc(herName())}'s wishes`:"My wishes"}</h2>`;
+    if(!list.length){
+      h += `<div class="emptybox"><span class="big">🎀</span>${readOnly?"Nothing here yet.":"Add the first thing you've been eyeing. Hearts show him how much you want it."}</div>`;
+    } else {
+      h += `<ul class="wish">${list.map(w=>`
+        <li class="${w.got?"got":""}">
+          <span class="h" aria-label="${w.h} hearts">${"💗".repeat(w.h)}</span>
+          <span class="name">${esc(w.name)}${safeLink(w.link)?` <a href="${esc(w.link)}" target="_blank" rel="noopener">view</a>`:""}</span>
+          ${readOnly?"":`<span class="acts">
+            <button data-got="${w.id}" aria-label="${w.got?"Mark as still wanted":"Mark as received"}">${w.got?"↩️":"🎁"}</button>
+            <button data-rm="${w.id}" aria-label="Remove">🗑️</button></span>`}
+        </li>`).join("")}</ul>`;
+      if(!readOnly) h += `<div class="send">
+        <button class="btn wa" data-wsend="wa">Send to ${esc(himName())}</button>
+        <button class="btn soft" data-wsend="copy">Share or copy</button></div>
+        <p class="hint" style="margin-top:12px">🎁 marks a gift as received so it drops to the bottom.</p>`;
+    }
+    return h;
+  }
+  const safeLink = u => /^https?:\/\//i.test(u||"");
+
+  // --- dialogs ---
+  function settingsDialog(){
+    const d = document.createElement("dialog");
+    d.innerHTML = `<h3>Settings ⚙️</h3>
+      <label for="sHer">Your name</label><input type="text" id="sHer" maxlength="24" value="${esc(S.her)}">
+      <label for="sHim">His name</label><input type="text" id="sHim" maxlength="24" value="${esc(S.him)}">
+      <label for="sPhone">His phone number</label><input type="tel" id="sPhone" placeholder="+44 7700 900123" value="${esc(phone)}">
+      <p class="small">Include the country code (+44) so WhatsApp finds him. Kept only on this phone.</p>
+      <div class="send"><button class="btn soft" value="cancel" id="dCancel">Cancel</button><button class="btn main" id="dSave">Save</button></div>`;
+    document.body.appendChild(d); d.showModal();
+    d.querySelector("#dCancel").onclick = () => d.close();
+    d.querySelector("#dSave").onclick = () => {
+      S.her = d.querySelector("#sHer").value.trim(); S.him = d.querySelector("#sHim").value.trim();
+      phone = d.querySelector("#sPhone").value.trim(); ls.set("cosy-phone", phone);
+      d.close(); commit(); toast("Saved ♡");
+    };
+    d.addEventListener("close", () => d.remove());
+  }
+  function addItemDialog(){
+    const d = document.createElement("dialog");
+    d.innerHTML = `<h3>Add to your comfort menu</h3>
+      <div class="emojirow"><input type="text" id="nE" maxlength="4" value="🍪" aria-label="Emoji"><input type="text" id="nL" maxlength="22" placeholder="e.g. Cookies" aria-label="Name"></div>
+      <div class="send"><button class="btn soft" id="dCancel">Cancel</button><button class="btn main" id="dSave">Add</button></div>`;
+    document.body.appendChild(d); d.showModal(); d.querySelector("#nL").focus();
+    d.querySelector("#dCancel").onclick = () => d.close();
+    d.querySelector("#dSave").onclick = () => {
+      const l = d.querySelector("#nL").value.trim(); if(!l) return d.querySelector("#nL").focus();
+      S.menu.push({id:"m"+uid(), e:d.querySelector("#nE").value.trim()||"💝", l}); d.close(); commit();
+    };
+    d.addEventListener("close", () => d.remove());
+  }
+
+  // --- events ---
+  document.addEventListener("click", e => {
+    const t = e.target.closest("button, [data-del]"); if(!t) return;
+    if(t.dataset.tab){ ui.tab = t.dataset.tab; render(); return; }
+    if(t.id==="openSettings") return settingsDialog();
+    if(t.id==="saveNames"){ S.her=$("#setHer").value.trim(); S.him=$("#setHim").value.trim(); if(!S.her) return $("#setHer").focus(); commit(); return; }
+    if(t.dataset.mood){ const m=t.dataset.mood; ui.moods = ui.moods.includes(m)? ui.moods.filter(x=>x!==m) : [...ui.moods,m]; render(); return; }
+    if(t.dataset.del){ e.stopPropagation(); const id=t.dataset.del; S.menu=S.menu.filter(m=>m.id!==id); ui.basket=ui.basket.filter(x=>x!==id); commit(); return; }
+    if(t.dataset.item){ if(ui.editMenu) return; const id=t.dataset.item; ui.basket = ui.basket.includes(id)? ui.basket.filter(x=>x!==id) : [...ui.basket,id]; render(); return; }
+    if(t.id==="toggleEdit"){ ui.editMenu=!ui.editMenu; render(); return; }
+    if(t.id==="addItem") return addItemDialog();
+    if(t.id==="clearOrder"){ ui.basket=[]; ui.moods=[]; ui.note=""; render(); return; }
+    if(t.dataset.send){ const txt=orderText(); ({wa:sendWA, sms:sendSMS, copy:copyOrShare})[t.dataset.send](txt); return; }
+    if(t.dataset.wsend){ const txt=wishText(); (t.dataset.wsend==="wa"?sendWA:copyOrShare)(txt); return; }
+    if(t.dataset.heart){ ui.newHearts=+t.dataset.heart; const n=$("#wName").value, l=$("#wLink").value; render(); $("#wName").value=n; $("#wLink").value=l; return; }
+    if(t.id==="addWish"){
+      const name=$("#wName").value.trim(); if(!name){ $("#wName").focus(); return; }
+      let link=$("#wLink").value.trim(); if(link && !/^https?:\/\//i.test(link)) link="https://"+link;
+      S.wish.push({id:"w"+uid(), name, link, h:ui.newHearts, got:false}); commit(); toast("Added to your wishlist 🎀"); return;
+    }
+    if(t.dataset.got){ const w=S.wish.find(x=>x.id===t.dataset.got); if(w){ w.got=!w.got; commit(); } return; }
+    if(t.dataset.rm){ S.wish=S.wish.filter(x=>x.id!==t.dataset.rm); commit(); return; }
+  });
+  document.addEventListener("input", e => {
+    if(e.target.id==="note"){ ui.note=e.target.value; const pos=e.target.selectionStart; render(); const n=$("#note"); n.focus(); n.setSelectionRange(pos,pos); }
+  });
+  document.addEventListener("keydown", e => { if(e.key==="Enter" && (e.target.id==="wName"||e.target.id==="wLink")){ e.preventDefault(); $("#addWish").click(); } });
+
+  render();
+
+  // --- light up the runtime ---
+  const use = window.claude && window.claude.use ? window.claude.use.bind(window.claude) : null;
+  (use ? use("artifact") : Promise.resolve(null)).then(a => {
+    art = a; artResolved = true;
+    if(!art){
+      const local = ls.get("cosy-state");
+      if(local){ try{ S = JSON.parse(local); render(); }catch(e){} }
+    }
+  }).catch(()=>{ artResolved = true; });
+  if(use) use("user").then(async u => { if(u && (await u.canEdit())===false){ readOnly = true; render(); } }).catch(()=>{});
+})();
+</script>
+</body>
+</html>
