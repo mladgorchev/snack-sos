@@ -82,7 +82,7 @@ h2{font-size:19px; margin:22px 4px 10px; font-weight:600}
 .linkbtn{border:0; background:none; color:var(--cherry); font-weight:600; padding:4px; font-size:15px; text-decoration:underline; text-underline-offset:3px}
 .row{display:flex; align-items:center; justify-content:space-between; gap:8px}
 
-textarea,input[type=text],input[type=url],input[type=tel]{
+textarea,input[type=text],input[type=url],input[type=tel],input[type=date],input[type=number]{
   width:100%; border:2px solid var(--line); background:var(--paper); border-radius:16px; padding:11px 14px; font-size:16px;
 }
 textarea{min-height:70px; resize:vertical}
@@ -139,7 +139,7 @@ input::placeholder,textarea::placeholder{color:var(--soft); opacity:.8}
 .setup b{font-size:17px}
 .setup input{background:#FFF9E6; border-color:#F0C24A; color:#4A1D3A}
 .two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-dialog{border:0; border-radius:26px; padding:20px; background:var(--paper); color:var(--ink); width:min(440px,92vw); box-shadow:0 20px 50px rgba(0,0,0,.25)}
+dialog{max-height:90vh; overflow:auto; border:0; border-radius:26px; padding:20px; background:var(--paper); color:var(--ink); width:min(440px,92vw); box-shadow:0 20px 50px rgba(0,0,0,.25)}
 dialog::backdrop{background:rgba(74,29,58,.35)}
 dialog h3{margin:0 0 12px; font-size:20px}
 dialog label{display:block; font-size:14px; color:var(--soft); margin:12px 0 5px}
@@ -147,6 +147,13 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
 .emojirow{display:grid; grid-template-columns:70px 1fr; gap:10px}
 .emojirow input:first-child{text-align:center; font-size:22px; padding:8px}
 
+a.btn{display:block; text-align:center; text-decoration:none}
+.check{display:flex !important; align-items:center; gap:10px; font-size:16px !important; color:var(--ink) !important; margin-top:18px !important; font-weight:600}
+.check input{width:22px; height:22px; accent-color:var(--cherry)}
+.headsup{background:var(--paper); border:2px solid var(--line); border-radius:18px; padding:12px 14px; font-size:15px; margin-bottom:6px}
+.headsup .linkbtn{padding:0 2px; font-size:14px}
+.makeown{margin-top:34px; background:var(--butter); color:#4A1D3A; border-radius:22px; padding:16px; display:grid; gap:8px; text-align:center}
+.makeown span{font-size:15px}
 .readonly{background:var(--mint); border-radius:16px; padding:10px 14px; font-size:15px; margin-bottom:16px}
 .toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,20px); opacity:0; background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:999px; font-size:15px; transition:.25s; pointer-events:none; z-index:10; max-width:90vw; text-align:center}
 .toast.show{opacity:1; transform:translate(-50%,0)}
@@ -170,13 +177,14 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
   clone.querySelector("#app").innerHTML = "";
   const TEMPLATE = "<!DOCTYPE html>\n" + clone.outerHTML;
 
-  const MOODS = ["😣 Crampy","😴 Tired","🥺 Weepy","😤 Hangry","🫠 Meh","🥰 Just need you"];
+  const MOODS = ["😮‍💨 Long day","😴 Tired","🤧 Feeling poorly","🌸 Period days","😣 Crampy","🥺 Weepy","😤 Hangry","🫠 Meh","🥰 Just need you"];
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const uid = () => Math.random().toString(36).slice(2,9);
   const ls = {
     get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
-    set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+    set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+    del(k){ try{ localStorage.removeItem(k); }catch(e){} }
   };
   const ss = {
     get(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } },
@@ -190,7 +198,12 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
   let phone = ls.get("cosy-phone") || "";
 
   let art = null, readOnly = false, artResolved = false, pubTimer = null;
-  let sharedAt = 0; // set when viewing a page someone sent as a link
+  let sharedAt = 0, sharedLive = false; // set when viewing a page someone sent as a link
+  // live sharing (only when the /api/page backend is switched on); id is public, key proves it's hers
+  const LIVE = { ok:false, id: ls.get("snack-live-id") || "", key: ls.get("snack-live-key") || "" };
+  let snapLink = "", liveTimer = null;
+  // optional cycle heads-up: kept only on this phone, never included in anything shared
+  let cyc = {}; try{ cyc = JSON.parse(ls.get("snack-cycle") || "{}") || {}; }catch(e){}
 
   function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),2200); }
 
@@ -198,6 +211,7 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
   function commit(){
     render();
     if(readOnly) return;
+    scheduleLive(); refreshSnap();
     clearTimeout(pubTimer);
     pubTimer = setTimeout(save, 1100);
   }
@@ -220,9 +234,10 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
   // --- messages ---
   const herName = () => S.her.trim() || "me";
   const himName = () => S.him.trim() || "love";
+  const partnerName = () => S.him.trim() || "your partner";
   function orderText(){
     const items = S.menu.filter(m => ui.basket.includes(m.id));
-    let t = `🧸 Comfort order for ${himName()} 🧸\nFrom: ${herName()} (on my period 🌸)\n\n`;
+    let t = `🧸 Comfort order for ${himName()} 🧸\nFrom: ${herName()}\n\n`;
     t += items.map(m => `${m.e} ${m.l}`).join("\n");
     if(ui.moods.length) t += `\n\nFeeling: ${ui.moods.join(", ")}`;
     if(ui.note.trim()) t += `\n\n✏️ ${ui.note.trim()}`;
@@ -244,9 +259,9 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
   function sendSMS(text){ openUrl(`sms:${phone.replace(/[^\d+]/g,"")}${/iPhone|iPad/.test(navigator.userAgent)?"&":"?"}body=${encodeURIComponent(text)}`); }
   async function copyOrShare(text){
     if(navigator.share){ try{ await navigator.share({text}); return; }catch(e){ if(e && e.name==="AbortError") return; } }
-    try{ await navigator.clipboard.writeText(text); toast("Copied! Paste it to him 💌"); return; }catch(e){}
+    try{ await navigator.clipboard.writeText(text); toast("Copied! Paste it into your chat 💌"); return; }catch(e){}
     const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select();
-    try{ document.execCommand("copy"); toast("Copied! Paste it to him 💌"); }catch(e){ toast("Couldn't copy on this device"); }
+    try{ document.execCommand("copy"); toast("Copied! Paste it into your chat 💌"); }catch(e){ toast("Couldn't copy on this device"); }
     ta.remove();
   }
 
@@ -254,19 +269,81 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
   const b64u = bytes => { let b=""; bytes.forEach(x => b += String.fromCharCode(x)); return btoa(b).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); };
   const unb64u = str => Uint8Array.from(atob(str.replace(/-/g,"+").replace(/_/g,"/")), c => c.charCodeAt(0));
   const pipe = (bytes, stream) => new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer().then(b => new Uint8Array(b));
+  const packData = () => ({ her:S.her, him:S.him, t:Date.now(), menu:S.menu.map(m=>[m.e,m.l]), wish:S.wish.map(w=>[w.name,w.link||"",w.h,w.got?1:0]) });
+  const readData = d => ({ v:1, her:String(d.her||""), him:String(d.him||""), t:+d.t||0,
+      menu:(d.menu||[]).map(([e,l],i) => ({id:"m"+i, e:String(e), l:String(l)})),
+      wish:(d.wish||[]).map(([name,link,h,got],i) => ({id:"w"+i, name:String(name), link:String(link||""), h:Math.min(3,Math.max(1,+h||1)), got:!!got})) });
   async function shareLink(){
-    const data = { her:S.her, him:S.him, t:Date.now(), menu:S.menu.map(m=>[m.e,m.l]), wish:S.wish.map(w=>[w.name,w.link||"",w.h,w.got?1:0]) };
-    const raw = new TextEncoder().encode(JSON.stringify(data));
+    const raw = new TextEncoder().encode(JSON.stringify(packData()));
     const code = "CompressionStream" in window ? "z" + b64u(await pipe(raw, new CompressionStream("deflate-raw"))) : "j" + b64u(raw);
     return `${location.origin}${location.pathname}#s=${code}`;
   }
   async function readShared(code){
     let bytes = unb64u(code.slice(1));
     if(code[0]==="z") bytes = await pipe(bytes, new DecompressionStream("deflate-raw"));
-    const d = JSON.parse(new TextDecoder().decode(bytes));
-    return { v:1, her:String(d.her||""), him:String(d.him||""), t:+d.t||0,
-      menu:(d.menu||[]).map(([e,l],i) => ({id:"m"+i, e:String(e), l:String(l)})),
-      wish:(d.wish||[]).map(([name,link,h,got],i) => ({id:"w"+i, name:String(name), link:String(link||""), h:Math.min(3,Math.max(1,+h||1)), got:!!got})) };
+    return readData(JSON.parse(new TextDecoder().decode(bytes)));
+  }
+  // links are built ahead of time so the share sheet opens straight from the tap (iOS is strict about that)
+  function refreshSnap(){ shareLink().then(u => { snapLink = u; }).catch(() => { snapLink = ""; }); }
+  const rand = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), x => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[x % 62]).join("");
+  function pushLive(){
+    return fetch(`/api/page?id=${LIVE.id}`, { method:"PUT", headers:{"Content-Type":"application/json","x-page-key":LIVE.key}, body:JSON.stringify(packData()) })
+      .then(r => { if(!r.ok) throw r.status; });
+  }
+  function scheduleLive(){
+    if(!LIVE.id) return;
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(() => pushLive().catch(() => toast("Couldn't update your shared page. It'll try again next change.")), 1500);
+  }
+  function pageLink(){
+    if(!LIVE.ok) return snapLink;
+    if(!LIVE.id){ LIVE.id = rand(12); LIVE.key = rand(40); ls.set("snack-live-id", LIVE.id); ls.set("snack-live-key", LIVE.key); }
+    pushLive().catch(() => toast("Couldn't upload your page. Check your connection 🙏"));
+    return `${location.origin}${location.pathname}#p=${LIVE.id}`;
+  }
+  function stopSharing(){
+    const id = LIVE.id, key = LIVE.key;
+    LIVE.id = LIVE.key = ""; ls.del("snack-live-id"); ls.del("snack-live-key");
+    return fetch(`/api/page?id=${id}`, { method:"DELETE", headers:{"x-page-key":key} });
+  }
+
+  // --- cycle heads-up ---
+  const DAY = 864e5;
+  const today0 = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+  const parseDate = s => { const [y,m,d] = String(s||"").split("-").map(Number); return y && m && d ? new Date(y, m-1, d) : null; };
+  const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const cycLen = c => Math.min(45, Math.max(20, Math.round(+c.len) || 28));
+  // the predicted start that's either coming up or began up to `grace` days ago
+  function nextStart(c, grace){
+    const last = parseDate(c.last); if(!last) return null;
+    const t = today0(), len = cycLen(c); let n = last;
+    while(Math.round((t - n) / DAY) > grace) n = new Date(n.getFullYear(), n.getMonth(), n.getDate() + len);
+    return { date:n, days:Math.round((n - t) / DAY), len };
+  }
+  function headsUp(){
+    if(!cyc.on) return "";
+    const p = nextStart(cyc, 4); if(!p || p.days > 3) return "";
+    const logged = cyc.last === fmtDate(today0());
+    const msg = p.days > 0 ? `🌸 Heads-up: your period may start in about ${p.days} day${p.days>1?"s":""}. A good moment to stock up.`
+      : p.days === 0 && !logged ? `🌸 Your period may start today. Be gentle with yourself.`
+      : `🌸 Period days (day ${1 - p.days}). Order whatever helps 💕`;
+    return `<div class="headsup">${msg}${logged ? "" : ` <button class="linkbtn" id="startedToday">It started today</button>`}</div>`;
+  }
+  function downloadIcs(c){
+    const p = nextStart(c, -1);
+    if(!p) return toast("Add the date your last period started first");
+    const ymd = d => fmtDate(d).replace(/-/g,"");
+    const end = new Date(p.date.getFullYear(), p.date.getMonth(), p.date.getDate() + 1);
+    const ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Snack SOS//EN","CALSCALE:GREGORIAN","BEGIN:VEVENT",
+      `UID:${rand(16)}@snack-sos`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+/,"")}`,
+      `DTSTART;VALUE=DATE:${ymd(p.date)}`, `DTEND;VALUE=DATE:${ymd(end)}`, `RRULE:FREQ=DAILY;INTERVAL=${p.len};COUNT=12`,
+      "SUMMARY:🌸 Period may start (Snack SOS)", "DESCRIPTION:A heads-up from Snack SOS. Stock up on comforts or send a comfort order 🧸",
+      "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:🌸 Period may start in about 2 days","TRIGGER:-P1DT15H","END:VALARM",
+      "END:VEVENT","END:VCALENDAR"].join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([ics], {type:"text/calendar"})); a.download = "snack-sos-reminders.ics";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   }
   const linkText = url => `🧸 Here's my Snack SOS page: my wishlist and comfort menu, for when you need ideas 💕\n${url}`;
 
@@ -281,15 +358,18 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
         <div><h1>${title}</h1><p>snacks, cuddles & wishes</p></div>
         ${readOnly?"":`<button class="gear" id="openSettings" aria-label="Settings">⚙️</button>`}
       </header>`;
-    if(readOnly) h += sharedAt
-      ? `<div class="readonly">You're viewing ${esc(herName())}'s page, shared ${new Date(sharedAt).toLocaleDateString(undefined,{day:"numeric",month:"short"})}. Ask ${esc(herName())} for a fresh link if it's been a while 💕</div>`
+    const when = sharedAt ? new Date(sharedAt).toLocaleDateString(undefined,{day:"numeric",month:"short"}) : "";
+    if(readOnly) h += sharedLive
+      ? `<div class="readonly">You're viewing ${esc(herName())}'s page. It stays up to date by itself 💕 <small>(last changed ${when})</small></div>`
+      : sharedAt
+      ? `<div class="readonly">You're viewing ${esc(herName())}'s page, shared ${when}. Ask ${esc(herName())} for a fresh link if it's been a while 💕</div>`
       : `<div class="readonly">You're viewing ${esc(herName())}'s list. Only ${esc(herName())} can change it 💕</div>`;
     if(needsSetup) h += `
       <div class="setup">
         <b>First, who are you two? 💞</b>
         <div class="two">
           <input type="text" id="setHer" placeholder="Your name" maxlength="24" aria-label="Your name">
-          <input type="text" id="setHim" placeholder="His name" maxlength="24" aria-label="His name">
+          <input type="text" id="setHim" placeholder="Partner's name" maxlength="24" aria-label="Partner's name">
         </div>
         <button class="btn main" id="saveNames">Save names</button>
       </div>`;
@@ -299,16 +379,22 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
         <button role="tab" data-tab="wish" aria-selected="${ui.tab==="wish"}">🎀 Wishlist</button>
       </div>`;
     h += ui.tab==="comfort" ? comfortView() : wishView();
+    if(sharedAt) h += `
+      <div class="makeown">
+        <b>Want your own Snack SOS? 🧸</b>
+        <span>A comfort menu and wishlist to share with someone you love. Free, no sign-up.</span>
+        <a class="btn main" href="${location.pathname}">Make my own</a>
+      </div>`;
     app.innerHTML = h;
   }
 
   function comfortView(){
     if(readOnly){
-      return `<h2>${esc(herName())}'s comfort menu</h2><p class="hint">Her go-to rescue kit, for when she needs it.</p>
+      return `<h2>${esc(herName())}'s comfort menu</h2><p class="hint">The little things that make ${esc(herName())}'s day better.</p>
         <div class="grid">${S.menu.map(m=>`<div class="tile"><span class="e">${esc(m.e)}</span><span class="l">${esc(m.l)}</span></div>`).join("")}</div>`;
     }
     const items = S.menu.filter(m => ui.basket.includes(m.id));
-    let h = `
+    let h = headsUp() + `
       <h2>How are you feeling?</h2>
       <div class="chips">${MOODS.map(m=>`<button class="chip" data-mood="${esc(m)}" aria-pressed="${ui.moods.includes(m)}">${esc(m)}</button>`).join("")}</div>
       <div class="row"><h2>What would help?</h2><button class="linkbtn" id="toggleEdit">${ui.editMenu?"Done":"Edit menu"}</button></div>
@@ -354,7 +440,7 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
       </div>`;
     h += `<h2>${readOnly?`${esc(herName())}'s wishes`:"My wishes"}</h2>`;
     if(!list.length){
-      h += `<div class="emptybox"><span class="big">🎀</span>${readOnly?"Nothing here yet.":"Add the first thing you've been eyeing. Hearts show him how much you want it."}</div>`;
+      h += `<div class="emptybox"><span class="big">🎀</span>${readOnly?"Nothing here yet.":`Add the first thing you've been eyeing. Hearts show ${esc(partnerName())} how much you want it.`}</div>`;
     } else {
       h += `<ul class="wish">${list.map(w=>`
         <li class="${w.got?"got":""}">
@@ -371,7 +457,9 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
     }
     if(!readOnly) h += `
       <h2>Share my page</h2>
-      <p class="hint">A link that opens your wishlist and comfort menu on ${esc(himName())}'s phone. He can look but not change anything. Send a new link after you update your list.</p>
+      <p class="hint">${LIVE.ok
+        ? `A link to your wishlist and comfort menu that always shows your latest changes. ${esc(partnerName())} can look but not change anything. Your list is kept online for this, and anyone with the link can see it.`
+        : `A link that opens your wishlist and comfort menu on ${esc(partnerName())}'s phone. They can look but not change anything. Send a new link after you update your list.`}</p>
       <div class="send">
         <button class="btn wa" data-lsend="wa">Send link on WhatsApp</button>
         <button class="btn soft" data-lsend="copy">Share or copy link</button>
@@ -385,15 +473,35 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
     const d = document.createElement("dialog");
     d.innerHTML = `<h3>Settings ⚙️</h3>
       <label for="sHer">Your name</label><input type="text" id="sHer" maxlength="24" value="${esc(S.her)}">
-      <label for="sHim">His name</label><input type="text" id="sHim" maxlength="24" value="${esc(S.him)}">
-      <label for="sPhone">His phone number</label><input type="tel" id="sPhone" placeholder="+44 7700 900123" value="${esc(phone)}">
-      <p class="small">Include the country code (+44) so WhatsApp finds him. Kept only on this phone.</p>
+      <label for="sHim">Partner's name</label><input type="text" id="sHim" maxlength="24" value="${esc(S.him)}">
+      <label for="sPhone">Partner's phone number</label><input type="tel" id="sPhone" placeholder="+44 7700 900123" value="${esc(phone)}">
+      <p class="small">Include the country code (+44) so WhatsApp finds them. Kept only on this phone.</p>
+      <label class="check"><input type="checkbox" id="cOn" ${cyc.on?"checked":""}> 🌸 Cycle heads-up</label>
+      <p class="small">Optional. A gentle reminder here a few days before your period. Kept only on this phone and never shared.</p>
+      <div id="cBox" ${cyc.on?"":"hidden"}>
+        <div class="two">
+          <div><label for="cLast">Last period started</label><input type="date" id="cLast" value="${esc(cyc.last||"")}"></div>
+          <div><label for="cLen">Cycle length (days)</label><input type="number" id="cLen" min="20" max="45" inputmode="numeric" value="${cycLen(cyc)}"></div>
+        </div>
+        <button class="btn soft wide" id="cCal" type="button" style="width:100%;margin-top:12px">📅 Add reminders to my calendar</button>
+      </div>
+      ${LIVE.id ? `<p class="small" style="margin-top:16px">Your page is shared live. <button class="linkbtn" id="stopShare" type="button">Stop sharing</button></p>` : ""}
       <div class="send"><button class="btn soft" value="cancel" id="dCancel">Cancel</button><button class="btn main" id="dSave">Save</button></div>`;
     document.body.appendChild(d); d.showModal();
     d.querySelector("#dCancel").onclick = () => d.close();
+    const cycForm = () => ({ on:d.querySelector("#cOn").checked, last:d.querySelector("#cLast").value, len:cycLen({len:d.querySelector("#cLen").value}) });
+    d.querySelector("#cOn").onchange = e => { d.querySelector("#cBox").hidden = !e.target.checked; };
+    d.querySelector("#cCal").onclick = () => downloadIcs(cycForm());
+    const stop = d.querySelector("#stopShare");
+    if(stop) stop.onclick = () => {
+      if(!confirm("Stop sharing? The link you sent will stop working.")) return;
+      stopSharing().then(() => toast("Your page is no longer shared")).catch(() => toast("Stopped here, but couldn't reach the server"));
+      stop.parentElement.remove();
+    };
     d.querySelector("#dSave").onclick = () => {
       S.her = d.querySelector("#sHer").value.trim(); S.him = d.querySelector("#sHim").value.trim();
       phone = d.querySelector("#sPhone").value.trim(); ls.set("cosy-phone", phone);
+      cyc = cycForm(); ls.set("snack-cycle", JSON.stringify(cyc));
       d.close(); commit(); toast("Saved ♡");
     };
     d.addEventListener("close", () => d.remove());
@@ -425,7 +533,8 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
     if(t.id==="addItem") return addItemDialog();
     if(t.id==="clearOrder"){ ui.basket=[]; ui.moods=[]; ui.note=""; render(); return; }
     if(t.dataset.send){ const txt=orderText(); ({wa:sendWA, sms:sendSMS, copy:copyOrShare})[t.dataset.send](txt); return; }
-    if(t.dataset.lsend){ const how=t.dataset.lsend; shareLink().then(url => (how==="wa"?sendWA:copyOrShare)(linkText(url))).catch(() => toast("Couldn't make a link on this device")); return; }
+    if(t.dataset.lsend){ const url = pageLink(); if(!url){ toast("One moment, try again"); refreshSnap(); return; } (t.dataset.lsend==="wa"?sendWA:copyOrShare)(linkText(url)); return; }
+    if(t.id==="startedToday"){ cyc.on = true; cyc.last = fmtDate(today0()); ls.set("snack-cycle", JSON.stringify(cyc)); render(); toast("Noted 🌸 Take it easy"); return; }
     if(t.dataset.wsend){ const txt=wishText(); (t.dataset.wsend==="wa"?sendWA:copyOrShare)(txt); return; }
     if(t.dataset.heart){ ui.newHearts=+t.dataset.heart; const n=$("#wName").value, l=$("#wLink").value; render(); $("#wName").value=n; $("#wLink").value=l; return; }
     if(t.id==="addWish"){
@@ -442,19 +551,36 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
   document.addEventListener("keydown", e => { if(e.key==="Enter" && (e.target.id==="wName"||e.target.id==="wLink")){ e.preventDefault(); $("#addWish").click(); } });
 
   const sharedCode = (location.hash.match(/^#s=([zj][\w-]+)$/) || [])[1];
+  const liveId = (location.hash.match(/^#p=([A-Za-z0-9]{12})$/) || [])[1];
+  const viewing = !!(sharedCode || liveId);
+  const oops = msg => { $("#app").innerHTML = `<div class="emptybox" style="margin-top:40px"><span class="big">🧸</span>${msg}</div>`; };
   if(sharedCode){
     readOnly = true; ui.tab = "wish";
     readShared(sharedCode).then(d => { S = d; sharedAt = d.t || Date.now(); render(); })
-      .catch(() => { $("#app").innerHTML = `<div class="emptybox" style="margin-top:40px"><span class="big">🧸</span>This link didn't open properly. Ask for a new one 💕</div>`; });
-  } else render();
+      .catch(() => oops("This link didn't open properly. Ask for a new one 💕"));
+  } else if(liveId){
+    readOnly = true; sharedLive = true; ui.tab = "wish";
+    const load = () => fetch(`/api/page?id=${liveId}`).then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(j => { S = readData(j.data || {}); sharedAt = j.updated || Date.now(); render(); })
+      .catch(st => { if(st===404) oops("This page isn't shared any more 💕"); else if(!sharedAt) oops("Couldn't load this page. Check your connection and try again."); });
+    load();
+    document.addEventListener("visibilitychange", () => { if(document.visibilityState==="visible") load(); });
+  } else {
+    render();
+    fetch("/api/page").then(r => r.ok ? r.json() : {}).then(j => {
+      LIVE.ok = !!j.live;
+      if(ui.tab==="wish" && !(document.activeElement && document.activeElement.matches("input,textarea"))) render();
+    }).catch(() => {});
+  }
 
   // --- light up the runtime ---
   const use = window.claude && window.claude.use ? window.claude.use.bind(window.claude) : null;
   (use ? use("artifact") : Promise.resolve(null)).then(a => {
     art = a; artResolved = true;
-    if(!art && !sharedCode){
+    if(!art && !viewing){
       const local = ls.get("cosy-state");
       if(local){ try{ S = JSON.parse(local); render(); }catch(e){} }
+      refreshSnap();
     }
   }).catch(()=>{ artResolved = true; });
   if(use) use("user").then(async u => { if(u && (await u.canEdit())===false){ readOnly = true; render(); } }).catch(()=>{});
