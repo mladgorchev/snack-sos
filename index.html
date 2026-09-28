@@ -154,6 +154,16 @@ a.btn{display:block; text-align:center; text-decoration:none}
 .headsup .linkbtn{padding:0 2px; font-size:14px}
 .makeown{margin-top:34px; background:var(--butter); color:#4A1D3A; border-radius:22px; padding:16px; display:grid; gap:8px; text-align:center}
 .makeown span{font-size:15px}
+.tabs.three{grid-template-columns:1fr 1fr 1fr}
+.tabs.three button{font-size:15px; padding:11px 4px}
+.cats{display:flex; flex-wrap:wrap; gap:6px}
+.cats .chip{font-size:14px; padding:6px 11px}
+.notes{list-style:none; padding:0; margin:0 0 6px; display:grid; gap:8px}
+.notes li{background:var(--tile); border-radius:16px; padding:10px 12px; box-shadow:var(--shadow); display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center}
+.notes .when{display:block; color:var(--soft); font-size:12px}
+.notes button{border:0; background:var(--paper); width:34px; height:34px; border-radius:50%; font-size:15px}
+.notes h3{margin:14px 4px 6px; font-size:16px; font-weight:600}
+.bell{margin:0 0 18px; background:var(--paper); border:2px dashed var(--line); border-radius:20px; padding:14px; display:grid; gap:10px; font-size:15px}
 .readonly{background:var(--mint); border-radius:16px; padding:10px 14px; font-size:15px; margin-bottom:16px}
 .toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,20px); opacity:0; background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:999px; font-size:15px; transition:.25s; pointer-events:none; z-index:10; max-width:90vw; text-align:center}
 .toast.show{opacity:1; transform:translate(-50%,0)}
@@ -204,6 +214,11 @@ a.btn{display:block; text-align:center; text-decoration:none}
   let snapLink = "", liveTimer = null;
   // optional cycle heads-up: kept only on this phone, never included in anything shared
   let cyc = {}; try{ cyc = JSON.parse(ls.get("snack-cycle") || "{}") || {}; }catch(e){}
+  // private notes about your partner: only on this phone, never shared or uploaded
+  let notes = []; try{ notes = JSON.parse(ls.get("snack-notes") || "[]") || []; }catch(e){}
+  const saveNotes = () => ls.set("snack-notes", JSON.stringify(notes));
+  const NOTE_CATS = [["gift","🎁","Gift ideas"],["love","❤️","Loves"],["nope","🙅","Not a fan"],["size","📏","Sizes"],["place","📍","Places & plans"]];
+  ui.noteCat = "gift";
 
   function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),2200); }
 
@@ -299,7 +314,7 @@ a.btn{display:block; text-align:center; text-decoration:none}
     if(!LIVE.ok) return snapLink;
     if(!LIVE.id){ LIVE.id = rand(12); LIVE.key = rand(40); ls.set("snack-live-id", LIVE.id); ls.set("snack-live-key", LIVE.key); }
     pushLive().catch(() => toast("Couldn't upload your page. Check your connection 🙏"));
-    return `${location.origin}${location.pathname}#p=${LIVE.id}`;
+    return `${location.origin}${location.pathname}?p=${LIVE.id}`;
   }
   function stopSharing(){
     const id = LIVE.id, key = LIVE.key;
@@ -374,12 +389,13 @@ a.btn{display:block; text-align:center; text-decoration:none}
         <button class="btn main" id="saveNames">Save names</button>
       </div>`;
     h += `
-      <div class="tabs" role="tablist">
-        <button role="tab" data-tab="comfort" aria-selected="${ui.tab==="comfort"}">🧸 Comfort orders</button>
+      <div class="tabs three" role="tablist">
+        <button role="tab" data-tab="comfort" aria-selected="${ui.tab==="comfort"}">🧸 Comfort</button>
         <button role="tab" data-tab="wish" aria-selected="${ui.tab==="wish"}">🎀 Wishlist</button>
+        <button role="tab" data-tab="notes" aria-selected="${ui.tab==="notes"}">📝 Notes</button>
       </div>`;
-    h += ui.tab==="comfort" ? comfortView() : wishView();
-    if(sharedAt) h += `
+    h += ui.tab==="comfort" ? comfortView() : ui.tab==="wish" ? wishView() : notesView();
+    if(sharedAt && ui.tab!=="notes") h += `
       <div class="makeown">
         <b>Want your own Snack SOS? 🧸</b>
         <span>A comfort menu and wishlist to share with someone you love. Free, no sign-up.</span>
@@ -425,7 +441,7 @@ a.btn{display:block; text-align:center; text-decoration:none}
 
   function wishView(){
     const list = [...S.wish].sort((a,b)=> (a.got-b.got) || (b.h-a.h));
-    let h = "";
+    let h = sharedLive ? pushCard() : "";
     if(!readOnly) h += `
       <div class="addcard">
         <input type="text" id="wName" maxlength="80" placeholder="Something you'd love…" aria-label="Wish">
@@ -458,7 +474,7 @@ a.btn{display:block; text-align:center; text-decoration:none}
     if(!readOnly) h += `
       <h2>Share my page</h2>
       <p class="hint">${LIVE.ok
-        ? `A link to your wishlist and comfort menu that always shows your latest changes. ${esc(partnerName())} can look but not change anything. Your list is kept online for this, and anyone with the link can see it.`
+        ? `A link to your wishlist and comfort menu that always shows your latest changes. ${esc(partnerName())} can look but not change anything, and can choose to get a notification when you add a wish. Your list is kept online for this, and anyone with the link can see it.`
         : `A link that opens your wishlist and comfort menu on ${esc(partnerName())}'s phone. They can look but not change anything. Send a new link after you update your list.`}</p>
       <div class="send">
         <button class="btn wa" data-lsend="wa">Send link on WhatsApp</button>
@@ -467,6 +483,65 @@ a.btn{display:block; text-align:center; text-decoration:none}
     return h;
   }
   const safeLink = u => /^https?:\/\//i.test(u||"");
+
+  // who the notes are about: the page owner when viewing their link, otherwise your partner
+  const aboutName = () => readOnly ? herName() : partnerName();
+  function notesView(){
+    const who = esc(aboutName());
+    let h = `
+      <p class="hint" style="margin-top:4px">Little things ${who} mentions, so you remember them when it counts. Only on this phone. ${who} can't see these.</p>
+      <div class="addcard">
+        <div class="cats" role="group" aria-label="Kind of note">
+          ${NOTE_CATS.map(([id,e,l])=>`<button class="chip" data-ncat="${id}" aria-pressed="${ui.noteCat===id}">${e} ${l}</button>`).join("")}
+        </div>
+        <div class="row">
+          <input type="text" id="nText" maxlength="120" placeholder="${ui.noteCat==="size"?"e.g. shoes 38, M in tops":ui.noteCat==="nope"?"e.g. coriander, lilies":ui.noteCat==="place"?"e.g. wants to see Lisbon":ui.noteCat==="love"?"e.g. peonies, salted caramel":"e.g. that blue scarf in Zara"}" aria-label="Note">
+          <button class="btn main" id="addNote">Add</button>
+        </div>
+      </div>`;
+    if(!notes.length) return h + `<div class="emptybox" style="margin-top:16px"><span class="big">📝</span>When ${who} mentions something they like, jot it here.</div>`;
+    const day = at => new Date(at).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
+    h += `<div style="margin-top:6px">`;
+    for(const [id,e,l] of NOTE_CATS){
+      const list = notes.filter(n => n.c===id).sort((a,b)=>b.at-a.at);
+      if(!list.length) continue;
+      h += `<h3>${e} ${l}</h3><ul class="notes">${list.map(n=>`
+        <li><span>${esc(n.t)}<span class="when">${day(n.at)}</span></span><button data-nrm="${n.id}" aria-label="Delete note">🗑️</button></li>`).join("")}</ul>`;
+    }
+    return h + `</div>`;
+  }
+
+  // --- notifications for the person following a live page ---
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const standalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  function pushCard(){
+    const who = esc(herName());
+    if(ls.get("snack-push") === liveId) return `<div class="bell">🔔 You'll get a notification when ${who} adds a wish. <button class="linkbtn" id="pushOff" style="justify-self:start">Turn off</button></div>`;
+    if(!pushSupported()) return isIOS && !standalone()
+      ? `<div class="bell"><b>🔔 Want a nudge when ${who} adds a wish?</b><span>On iPhone, first tap <b>Share</b> → <b>Add to Home Screen</b>, then open Snack SOS from your home screen and turn it on there.</span></div>`
+      : "";
+    if(Notification.permission === "denied") return `<div class="bell">🔕 Notifications are blocked for this site. You can allow them in your browser or phone settings.</div>`;
+    return `<div class="bell"><b>🔔 Never miss a wish</b><span>Get a notification when ${who} adds something to the wishlist.</span><button class="btn main" id="pushOn">Notify me</button></div>`;
+  }
+  async function enablePush(){
+    const perm = await Notification.requestPermission(); // first, while we still have the tap
+    if(perm !== "granted"){ render(); return toast("No worries, notifications stay off"); }
+    const reg = await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
+    const { publicKey } = await fetch("/api/push").then(r => r.json());
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:unb64u(publicKey) });
+    const r = await fetch(`/api/push?id=${liveId}`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(sub) });
+    if(!r.ok) throw r.status;
+    ls.set("snack-push", liveId); render(); toast("🔔 Notifications on");
+  }
+  async function disablePush(){
+    ls.del("snack-push"); render(); toast("Notifications off");
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg && await reg.pushManager.getSubscription();
+    if(!sub) return;
+    await fetch(`/api/push?id=${liveId}`, { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({endpoint:sub.endpoint}) }).catch(()=>{});
+    await sub.unsubscribe().catch(()=>{});
+  }
 
   // --- dialogs ---
   function settingsDialog(){
@@ -534,6 +609,14 @@ a.btn{display:block; text-align:center; text-decoration:none}
     if(t.id==="clearOrder"){ ui.basket=[]; ui.moods=[]; ui.note=""; render(); return; }
     if(t.dataset.send){ const txt=orderText(); ({wa:sendWA, sms:sendSMS, copy:copyOrShare})[t.dataset.send](txt); return; }
     if(t.dataset.lsend){ const url = pageLink(); if(!url){ toast("One moment, try again"); refreshSnap(); return; } (t.dataset.lsend==="wa"?sendWA:copyOrShare)(linkText(url)); return; }
+    if(t.dataset.ncat){ const v=$("#nText").value; ui.noteCat=t.dataset.ncat; render(); $("#nText").value=v; $("#nText").focus(); return; }
+    if(t.id==="addNote"){
+      const txt=$("#nText").value.trim(); if(!txt){ $("#nText").focus(); return; }
+      notes.push({id:"n"+uid(), c:ui.noteCat, t:txt, at:Date.now()}); saveNotes(); render(); toast("Saved. Future you says thanks 💕"); return;
+    }
+    if(t.dataset.nrm){ notes=notes.filter(n=>n.id!==t.dataset.nrm); saveNotes(); render(); return; }
+    if(t.id==="pushOn"){ t.disabled=true; enablePush().catch(() => { render(); toast("Couldn't turn on notifications. Try again in a moment."); }); return; }
+    if(t.id==="pushOff"){ disablePush(); return; }
     if(t.id==="startedToday"){ cyc.on = true; cyc.last = fmtDate(today0()); ls.set("snack-cycle", JSON.stringify(cyc)); render(); toast("Noted 🌸 Take it easy"); return; }
     if(t.dataset.wsend){ const txt=wishText(); (t.dataset.wsend==="wa"?sendWA:copyOrShare)(txt); return; }
     if(t.dataset.heart){ ui.newHearts=+t.dataset.heart; const n=$("#wName").value, l=$("#wLink").value; render(); $("#wName").value=n; $("#wLink").value=l; return; }
@@ -548,10 +631,16 @@ a.btn{display:block; text-align:center; text-decoration:none}
   document.addEventListener("input", e => {
     if(e.target.id==="note"){ ui.note=e.target.value; const pos=e.target.selectionStart; render(); const n=$("#note"); n.focus(); n.setSelectionRange(pos,pos); }
   });
-  document.addEventListener("keydown", e => { if(e.key==="Enter" && (e.target.id==="wName"||e.target.id==="wLink")){ e.preventDefault(); $("#addWish").click(); } });
+  document.addEventListener("keydown", e => {
+    if(e.key!=="Enter") return;
+    if(e.target.id==="wName"||e.target.id==="wLink"){ e.preventDefault(); $("#addWish").click(); }
+    if(e.target.id==="nText"){ e.preventDefault(); $("#addNote").click(); }
+  });
 
   const sharedCode = (location.hash.match(/^#s=([zj][\w-]+)$/) || [])[1];
-  const liveId = (location.hash.match(/^#p=([A-Za-z0-9]{12})$/) || [])[1];
+  const liveId = (location.hash.match(/^#p=([A-Za-z0-9]{12})$/) || [])[1] || (location.search.match(/[?&]p=([A-Za-z0-9]{12})(?:&|$)/) || [])[1];
+  // keep the page in the address bar as ?p=, so "Add to Home Screen" opens it directly
+  if(liveId && location.search !== `?p=${liveId}`) history.replaceState(null, "", `${location.pathname}?p=${liveId}`);
   const viewing = !!(sharedCode || liveId);
   const oops = msg => { $("#app").innerHTML = `<div class="emptybox" style="margin-top:40px"><span class="big">🧸</span>${msg}</div>`; };
   if(sharedCode){

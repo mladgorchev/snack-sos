@@ -1,0 +1,8 @@
+{
+  "name": "snack-sos",
+  "private": true,
+  "description": "Comfort orders and a wishlist for two",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}
