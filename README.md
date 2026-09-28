@@ -1,4 +1,4 @@
-# Cosy Corner 🧸
+# Snack SOS 🧸
 
 A tiny, cute page for couples:
 
@@ -10,7 +10,7 @@ It's a single static `index.html` with no build step and no dependencies. Your m
 ## Deploy to Vercel
 
 **Option A: GitHub + Vercel**
-1. Create a new GitHub repo and upload `index.html` and this README.
+1. The code lives in the `snack-sos` GitHub repo.
 2. Go to vercel.com → Add New → Project → import the repo.
 3. Framework preset: **Other**. No build command. Click Deploy.
 
