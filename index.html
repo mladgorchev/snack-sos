@@ -190,6 +190,7 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
   let phone = ls.get("cosy-phone") || "";
 
   let art = null, readOnly = false, artResolved = false, pubTimer = null;
+  let sharedAt = 0; // set when viewing a page someone sent as a link
 
   function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),2200); }
 
@@ -249,6 +250,26 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
     ta.remove();
   }
 
+  // --- share links: her list packed into the #fragment, so it never reaches a server ---
+  const b64u = bytes => { let b=""; bytes.forEach(x => b += String.fromCharCode(x)); return btoa(b).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); };
+  const unb64u = str => Uint8Array.from(atob(str.replace(/-/g,"+").replace(/_/g,"/")), c => c.charCodeAt(0));
+  const pipe = (bytes, stream) => new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer().then(b => new Uint8Array(b));
+  async function shareLink(){
+    const data = { her:S.her, him:S.him, t:Date.now(), menu:S.menu.map(m=>[m.e,m.l]), wish:S.wish.map(w=>[w.name,w.link||"",w.h,w.got?1:0]) };
+    const raw = new TextEncoder().encode(JSON.stringify(data));
+    const code = "CompressionStream" in window ? "z" + b64u(await pipe(raw, new CompressionStream("deflate-raw"))) : "j" + b64u(raw);
+    return `${location.origin}${location.pathname}#s=${code}`;
+  }
+  async function readShared(code){
+    let bytes = unb64u(code.slice(1));
+    if(code[0]==="z") bytes = await pipe(bytes, new DecompressionStream("deflate-raw"));
+    const d = JSON.parse(new TextDecoder().decode(bytes));
+    return { v:1, her:String(d.her||""), him:String(d.him||""), t:+d.t||0,
+      menu:(d.menu||[]).map(([e,l],i) => ({id:"m"+i, e:String(e), l:String(l)})),
+      wish:(d.wish||[]).map(([name,link,h,got],i) => ({id:"w"+i, name:String(name), link:String(link||""), h:Math.min(3,Math.max(1,+h||1)), got:!!got})) };
+  }
+  const linkText = url => `🧸 Here's my Snack SOS page: my wishlist and comfort menu, for when you need ideas 💕\n${url}`;
+
   // --- render ---
   function render(){
     const app = $("#app");
@@ -260,7 +281,9 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
         <div><h1>${title}</h1><p>snacks, cuddles & wishes</p></div>
         ${readOnly?"":`<button class="gear" id="openSettings" aria-label="Settings">⚙️</button>`}
       </header>`;
-    if(readOnly) h += `<div class="readonly">You're viewing ${esc(herName())}'s list. Only ${esc(herName())} can change it 💕</div>`;
+    if(readOnly) h += sharedAt
+      ? `<div class="readonly">You're viewing ${esc(herName())}'s page, shared ${new Date(sharedAt).toLocaleDateString(undefined,{day:"numeric",month:"short"})}. Ask ${esc(herName())} for a fresh link if it's been a while 💕</div>`
+      : `<div class="readonly">You're viewing ${esc(herName())}'s list. Only ${esc(herName())} can change it 💕</div>`;
     if(needsSetup) h += `
       <div class="setup">
         <b>First, who are you two? 💞</b>
@@ -346,6 +369,13 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
         <button class="btn soft" data-wsend="copy">Share or copy</button></div>
         <p class="hint" style="margin-top:12px">🎁 marks a gift as received so it drops to the bottom.</p>`;
     }
+    if(!readOnly) h += `
+      <h2>Share my page</h2>
+      <p class="hint">A link that opens your wishlist and comfort menu on ${esc(himName())}'s phone. He can look but not change anything. Send a new link after you update your list.</p>
+      <div class="send">
+        <button class="btn wa" data-lsend="wa">Send link on WhatsApp</button>
+        <button class="btn soft" data-lsend="copy">Share or copy link</button>
+      </div>`;
     return h;
   }
   const safeLink = u => /^https?:\/\//i.test(u||"");
@@ -395,6 +425,7 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
     if(t.id==="addItem") return addItemDialog();
     if(t.id==="clearOrder"){ ui.basket=[]; ui.moods=[]; ui.note=""; render(); return; }
     if(t.dataset.send){ const txt=orderText(); ({wa:sendWA, sms:sendSMS, copy:copyOrShare})[t.dataset.send](txt); return; }
+    if(t.dataset.lsend){ const how=t.dataset.lsend; shareLink().then(url => (how==="wa"?sendWA:copyOrShare)(linkText(url))).catch(() => toast("Couldn't make a link on this device")); return; }
     if(t.dataset.wsend){ const txt=wishText(); (t.dataset.wsend==="wa"?sendWA:copyOrShare)(txt); return; }
     if(t.dataset.heart){ ui.newHearts=+t.dataset.heart; const n=$("#wName").value, l=$("#wLink").value; render(); $("#wName").value=n; $("#wLink").value=l; return; }
     if(t.id==="addWish"){
@@ -410,13 +441,18 @@ dialog .small{font-size:13px; color:var(--soft); margin-top:6px}
   });
   document.addEventListener("keydown", e => { if(e.key==="Enter" && (e.target.id==="wName"||e.target.id==="wLink")){ e.preventDefault(); $("#addWish").click(); } });
 
-  render();
+  const sharedCode = (location.hash.match(/^#s=([zj][\w-]+)$/) || [])[1];
+  if(sharedCode){
+    readOnly = true; ui.tab = "wish";
+    readShared(sharedCode).then(d => { S = d; sharedAt = d.t || Date.now(); render(); })
+      .catch(() => { $("#app").innerHTML = `<div class="emptybox" style="margin-top:40px"><span class="big">🧸</span>This link didn't open properly. Ask for a new one 💕</div>`; });
+  } else render();
 
   // --- light up the runtime ---
   const use = window.claude && window.claude.use ? window.claude.use.bind(window.claude) : null;
   (use ? use("artifact") : Promise.resolve(null)).then(a => {
     art = a; artResolved = true;
-    if(!art){
+    if(!art && !sharedCode){
       const local = ls.get("cosy-state");
       if(local){ try{ S = JSON.parse(local); render(); }catch(e){} }
     }
