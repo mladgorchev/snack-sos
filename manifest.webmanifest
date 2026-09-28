@@ -1,0 +1,14 @@
+{
+  "name": "Snack SOS",
+  "short_name": "Snack SOS",
+  "description": "Comfort orders and a wishlist for two.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFE9EE",
+  "theme_color": "#FFE9EE",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

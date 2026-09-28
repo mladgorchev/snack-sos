@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#FFE9EE"/><g transform="translate(256 270) scale(1.04) translate(-256 -282)">
+  <g stroke="#4A1D3A" stroke-width="14" stroke-linejoin="round" stroke-linecap="round">
+    <!-- ears -->
+    <circle cx="146" cy="158" r="66" fill="#C98A5E"/>
+    <circle cx="366" cy="158" r="66" fill="#C98A5E"/>
+    <circle cx="146" cy="158" r="32" fill="#F7B9A8" stroke="none"/>
+    <circle cx="366" cy="158" r="32" fill="#F7B9A8" stroke="none"/>
+    <!-- head -->
+    <ellipse cx="256" cy="282" rx="162" ry="146" fill="#D99A68"/>
+    <!-- muzzle -->
+    <ellipse cx="256" cy="336" rx="74" ry="56" fill="#FBE3CC"/>
+  </g>
+  <!-- cheeks -->
+  <ellipse cx="164" cy="326" rx="30" ry="19" fill="#FF8FA6" opacity=".75"/>
+  <ellipse cx="348" cy="326" rx="30" ry="19" fill="#FF8FA6" opacity=".75"/>
+  <!-- eyes -->
+  <circle cx="196" cy="268" r="17" fill="#4A1D3A"/>
+  <circle cx="316" cy="268" r="17" fill="#4A1D3A"/>
+  <circle cx="202" cy="262" r="6" fill="#fff"/>
+  <circle cx="322" cy="262" r="6" fill="#fff"/>
+  <!-- nose + mouth -->
+  <ellipse cx="256" cy="312" rx="25" ry="17" fill="#4A1D3A"/>
+  <path d="M256 328 v14 M226 346 q15 16 30 -4 q15 20 30 4" fill="none" stroke="#4A1D3A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- heart badge -->
+  <g transform="translate(392 396) rotate(12)">
+    <path d="M0 34 C-58 -4 -44 -58 -10 -50 C-4 -48 -1 -44 0 -40 C1 -44 4 -48 10 -50 C44 -58 58 -4 0 34 Z"
+          transform="scale(1.35)" fill="#D6334F" stroke="#fff" stroke-width="9" stroke-linejoin="round"/>
+    <path d="M-30 -32 q-10 8 -8 22" transform="scale(1.35)" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+  </g>
+</g></svg>
